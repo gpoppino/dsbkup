@@ -75,7 +75,7 @@ function wait_for_backup_to_finish()
     done
 }
 
-if ( ! check_backup_dir_exists ) ;
+if ! check_backup_dir_exists ;
 then
     echo "Directory ${BACKUPDIR} does not exist... exiting."
     exit 1
