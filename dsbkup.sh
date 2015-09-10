@@ -6,6 +6,7 @@ CDATE=$(date +%Y%m%d)
 SERVER=$(hostname -s)
 BACKUPFILE="${SERVER}${CDATE}"
 BACKUPDIR="/var/opt/novell/eDirectory/data/backup_edir"
+NICIPASSWD="yourpassword"
 MAX_BACKUPS_TO_STORE=7
 WAIT_FOR_BACKUP_SLEEP=15
 
@@ -19,7 +20,7 @@ function check_backup_dir_exists()
 function take_backup()
 {
     echo "*  Starting backup of eDirectory on $SERVER ..."
-    dsbk backup -b -f ${BACKUPDIR}/${BACKUPFILE}.bkup -l ${BACKUPDIR}/${BACKUPFILE}.log -t -w
+    dsbk backup -b -f ${BACKUPDIR}/${BACKUPFILE}.bkup -l ${BACKUPDIR}/${BACKUPFILE}.log -e ${NICIPASSWD} -t -w
 }
 
 function check_backup_size()
