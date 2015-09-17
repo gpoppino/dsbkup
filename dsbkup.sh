@@ -27,7 +27,7 @@ function check_rfl_dir_exists()
 
 function take_backup()
 {
-    echo "*  Starting backup of eDirectory on $SERVER ..."
+    echo "* Starting backup of eDirectory on $SERVER ..."
     dsbk backup -b -f ${BACKUPDIR}/${BACKUPFILE}.bkup -l ${BACKUPDIR}/${BACKUPFILE}.log -e ${NICIPASSWD} -t -w
 }
 
@@ -45,7 +45,7 @@ function check_backup_size()
 function create_tgz()
 {
     # Archive files
-    echo "*  Archiving ${BACKUPFILE} and log file ..."
+    echo "* Archiving ${BACKUPFILE} and log file ..."
     if [ ${RFL_ENABLED} -eq 0 ];
     then
         tar zcvf ${BACKUPDIR}/${BACKUPFILE}.tgz ${BACKUPDIR}/${BACKUPFILE}.bkup* \
@@ -79,18 +79,16 @@ delete_unused_rfl()
 function delete_old_backup_files()
 {
     # Delete unnecessary files
-    echo "* Deleting temp files ..."
+    echo "* Deleting temporary files ..."
     rm -f ${BACKUPDIR}/${BACKUPFILE}.bkup* ${BACKUPDIR}/${BACKUPFILE}.log
 
     # Delete files older than $MAX_BACKUPS_TO_STORE days
-    echo "*  Deleting files older than ${MAX_BACKUPS_TO_STORE} days ..."
-    find ${BACKUPDIR} -name '*.tgz' -mtime +${MAX_BACKUPS_TO_STORE} >> /tmp/dsbackup.tmp
-    cat /tmp/dsbackup.tmp | while read delfil
+    echo "* Deleting files older than ${MAX_BACKUPS_TO_STORE} days ..."
+    for delfile in $(find ${BACKUPDIR} -name '*.tgz' -mtime +${MAX_BACKUPS_TO_STORE});
     do
-        echo " - ${delfil} deleted."
-        rm -f ${delfil}
+        echo " - ${delfile} deleted."
+        rm -f ${delfile}
     done
-    [[ -s /tmp/dsbackup.tmp ]] && { rm /tmp/dsbackup.tmp ;}
 }
 
 function wait_for_backup_to_finish()
@@ -108,6 +106,12 @@ function wait_for_backup_to_finish()
         sleep ${WAIT_FOR_BACKUP_SLEEP}
         i2=$(check_backup_size)
     done
+}
+
+function exit_with_errors()
+{
+    echo "**ERROR**: there were errors...Please, verify the output."
+    exit 1
 }
 
 RFL_ENABLED=1
@@ -131,10 +135,15 @@ then
 fi
 
 cd ${BACKUPDIR}
-take_backup
-wait_for_backup_to_finish
-create_tgz
-delete_old_backup_files
-[ ${RFL_ENABLED} -eq 0 ] && delete_unused_rfl
+take_backup && wait_for_backup_to_finish && create_tgz && \
+    delete_old_backup_files
+RET=$?
 
-echo "*  Backup script complete."
+[ ${RET} -ne 0 ] && exit_with_errors
+
+if [ ${RFL_ENABLED} -eq 0 ];
+then
+    delete_unused_rfl || exit_with_errors
+fi
+
+echo "* Backup script completed successfully."
