@@ -63,11 +63,24 @@ function create_tgz()
     if [ ${RFL_ENABLED} -eq 0 ];
     then
         tar zcvf ${BACKUPDIR}/${BACKUPFILE}.tgz ${BACKUPDIR}/${BACKUPFILE}.bkup* \
-            ${BACKUPDIR}/${BACKUPFILE}.log ${RFLDIR}/*.log
+            ${BACKUPDIR}/${BACKUPFILE}.log $(_find_unused_rfl)
     else
         tar zcvf ${BACKUPDIR}/${BACKUPFILE}.tgz ${BACKUPDIR}/${BACKUPFILE}.bkup* \
             ${BACKUPDIR}/${BACKUPFILE}.log
     fi
+}
+
+_find_unused_rfl()
+{
+    CURRENT_RFL=$(tail -5 ${NDSD_LOG_FILE} | \
+        grep "Current roll forward log" | tail -1 | awk '{ print $NF }')
+
+    for unused_rfl in $(find ${RFLDIR} -type f ! -path ${RFLDIR}/${CURRENT_RFL});
+    do
+        lsof ${unused_rfl} >/dev/null 2>&1 || {
+            echo ${unused_rfl}
+        }
+    done
 }
 
 delete_unused_rfl()
@@ -78,16 +91,12 @@ delete_unused_rfl()
         grep "Roll forward log status OFF" && \
             echo "* Roll forward logs are not enabled!" && return # Roll forward logs disabled. Do nothing.
 
-    LAST_RFL_NOT_USED=$(tail -5 ${NDSD_LOG_FILE} | \
-        grep "Last roll forward log not used" | tail -1 | awk '{ print $NF }')
-    for rfl_not_used in $(find ${RFLDIR} ! -newer ${RFLDIR}/${LAST_RFL_NOT_USED} ! -path ${RFLDIR}/${LAST_RFL_NOT_USED});
-    do
-        lsof ${rfl_not_used} >/dev/null 2>&1 || {
-            echo " - deleting unused roll forward log ${rfl_not_used}"
-            rm -f ${rfl_not_used}
-        }
-
-    done
+    echo "* Deleting unused roll forward logs ..."
+    _find_unused_rfl | while read unused_rfl;
+                       do
+                           echo " - ${unused_rfl} deleted"
+                           rm -f ${unused_rfl}
+                       done 
 }
 
 function delete_old_backup_files()
