@@ -19,7 +19,7 @@ its header. These are:
   *BACKUPDIR* before removing them.
 
 If you have the roll-forward logs feature enabled and want to backup the last
-two log files and delete the unused ones, you will have to specify the directory
+unused log files before deleting them, you will have to specify the directory
 where these logs are stored with the following variable:
 
 - `RFLDIR`: name of the directory where the roll-forward logs are stored.
